@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import ReactFlow, {
-  addEdge,
-  Background,
-  Controls,
-  MiniMap,
-  MarkerType,
-  useNodesState,
-  useEdgesState,
-  ConnectionLineType,
-  Position
-} from 'reactflow';
-import type { Node, Edge, Connection } from 'reactflow';
+    addEdge,
+    Background,
+    Controls,
+    MiniMap,
+    MarkerType,
+    useNodesState,
+    useEdgesState,
+    ConnectionLineType,
+    Position,
+  } from 'reactflow';
+  
+  import type { Connection, Edge, Node } from 'reactflow';
 
 import { getLayoutedElements, validateDAG } from '../utils/graphUtils';
 import DAGPreview from './DAGPreview';
@@ -46,47 +47,61 @@ const DagEditor: React.FC = () => {
     setNodes((nds) => [...nds, newNode]);
   };
 
-  const onConnect = useCallback((params: Connection) => {
-    const { source, target } = params;
+  const onConnect = useCallback(
+    (params: Connection) => {
+      const { source, target, sourceHandle, targetHandle } = params;
 
-    if (!source || !target || source === target) return; // disallow self-loop
+      // Safety check
+      if (!source || !target || source === target) return;
 
-    const sourceNode = nodes.find((n) => n.id === source);
-    const targetNode = nodes.find((n) => n.id === target);
-    if (!sourceNode || !targetNode) return;
+      const sourceNode = nodes.find((n) => n.id === source);
+      const targetNode = nodes.find((n) => n.id === target);
+      if (!sourceNode || !targetNode) return;
 
-    if (
-      sourceNode.sourcePosition !== Position.Right ||
-      targetNode.targetPosition !== Position.Left
-    ) {
-      alert('Invalid connection! Edges must go from RIGHT (source) to LEFT (target)');
-      return;
-    }
+      // Validate edge direction
+      if (
+        sourceNode.sourcePosition !== Position.Right ||
+        targetNode.targetPosition !== Position.Left
+      ) {
+        alert('Invalid edge: must go from RIGHT to LEFT');
+        return;
+      }
 
-    const newEdge: Edge = {
-      ...params,
-      id: `${source}-${target}`,
-      type: 'default',
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-      },
-    };
+      const newEdge: Edge = {
+        id: `${source}-${target}`,
+        source,
+        target,
+        sourceHandle: sourceHandle ?? undefined,
+        targetHandle: targetHandle ?? undefined,
+        type: 'default',
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
+      };
 
-    setEdges((eds) => addEdge(newEdge, eds));
-  }, [nodes]);
+      setEdges((eds) => addEdge(newEdge, eds));
+    },
+    [nodes]
+  );
 
   const onLayout = () => {
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements([...nodes], [...edges]);
-    setNodes([...layoutedNodes]);
-    setEdges([...layoutedEdges]);
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+      [...nodes],
+      [...edges]
+    );
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
   };
 
-  const onDelete = useCallback((event: KeyboardEvent) => {
-    if (event.key === 'Delete') {
-      setNodes((nds) => nds.filter((node) => !node.selected));
-      setEdges((eds) => eds.filter((edge) => !edge.selected));
-    }
-  }, []);
+  const onDelete = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === 'Delete') {
+        setNodes((nds) => nds.filter((node) => !node.selected));
+        setEdges((eds) => eds.filter((edge) => !edge.selected));
+      }
+    },
+    [setNodes, setEdges]
+  );
 
   useEffect(() => {
     setDagValid(validateDAG(nodes, edges));
@@ -101,10 +116,24 @@ const DagEditor: React.FC = () => {
     <div className="w-screen h-screen flex flex-col">
       <div className="p-2 flex justify-between items-center bg-gray-100 shadow">
         <div className="flex gap-2">
-          <button onClick={addNode} className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Add Node</button>
-          <button onClick={onLayout} className="px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700">Auto Layout</button>
+          <button
+            onClick={addNode}
+            className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Add Node
+          </button>
+          <button
+            onClick={onLayout}
+            className="px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Auto Layout
+          </button>
         </div>
-        <div className={`text-sm font-medium ${dagValid ? 'text-green-600' : 'text-red-600'}`}>
+        <div
+          className={`text-sm font-medium ${
+            dagValid ? 'text-green-600' : 'text-red-600'
+          }`}
+        >
           DAG Status: {dagValid ? 'Valid' : 'Invalid'}
         </div>
       </div>
